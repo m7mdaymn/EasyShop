@@ -16,19 +16,20 @@ public class ApplicationDbContext : DbContext
     public DbSet<ProductImage> ProductImages => Set<ProductImage>();
     public DbSet<ProductTag> ProductTags => Set<ProductTag>();
     public DbSet<Review> Reviews => Set<Review>();
-
     public DbSet<NewsletterSubscription> NewsletterSubscriptions
         => Set<NewsletterSubscription>();
-
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-
+        // =========================
         // Category
+        // =========================
         modelBuilder.Entity<Category>(entity =>
         {
+            entity.ToTable("Categories");
+
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.Name)
@@ -36,11 +37,15 @@ public class ApplicationDbContext : DbContext
                 .IsRequired();
 
             entity.Property(x => x.Slug)
-                .HasMaxLength(100)
+                .HasMaxLength(120)
                 .IsRequired();
 
             entity.Property(x => x.Image)
+                .HasColumnName("ImageUrl")
                 .HasMaxLength(500);
+
+            entity.Property(x => x.IsActive)
+                .HasDefaultValue(true);
 
             entity.HasIndex(x => x.Name)
                 .IsUnique();
@@ -54,10 +59,13 @@ public class ApplicationDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
-
+        // =========================
         // Product
+        // =========================
         modelBuilder.Entity<Product>(entity =>
         {
+            entity.ToTable("Products");
+
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.Title)
@@ -65,17 +73,31 @@ public class ApplicationDbContext : DbContext
                 .IsRequired();
 
             entity.Property(x => x.Description)
-                .HasMaxLength(2000)
-                .IsRequired();
-
-            entity.Property(x => x.Price)
-                .HasColumnType("decimal(10,2)");
+                .HasMaxLength(2000);
 
             entity.Property(x => x.Brand)
                 .HasMaxLength(150);
 
+            entity.Property(x => x.Price)
+                .HasColumnType("decimal(10,2)")
+                .IsRequired();
+
+            entity.Property(x => x.Stock)
+                .HasDefaultValue(0)
+                .IsRequired();
+
             entity.Property(x => x.Thumbnail)
+                .HasColumnName("ThumbnailUrl")
                 .HasMaxLength(500);
+
+            entity.Property(x => x.IsFeatured)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.IsActive)
+                .HasDefaultValue(true);
+
+            entity.Property(x => x.CreatedAt)
+                .IsRequired();
 
             entity.HasMany(x => x.Images)
                 .WithOne(x => x.Product)
@@ -93,21 +115,36 @@ public class ApplicationDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-
-        // ProductImage
+        // =========================
+        // Product Image
+        // =========================
         modelBuilder.Entity<ProductImage>(entity =>
         {
+            entity.ToTable("ProductImages");
+
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.ImageUrl)
                 .HasMaxLength(500)
                 .IsRequired();
+
+            entity.Property(x => x.Order)
+                .HasColumnName("DisplayOrder")
+                .HasDefaultValue(0);
+
+            entity.HasOne(x => x.Product)
+                .WithMany(x => x.Images)
+                .HasForeignKey(x => x.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
-
-        // ProductTag
+        // =========================
+        // Product Tag
+        // =========================
         modelBuilder.Entity<ProductTag>(entity =>
         {
+            entity.ToTable("ProductTags");
+
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.Name)
@@ -120,12 +157,20 @@ public class ApplicationDbContext : DbContext
                 x.Name
             })
             .IsUnique();
+
+            entity.HasOne(x => x.Product)
+                .WithMany(x => x.Tags)
+                .HasForeignKey(x => x.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
-
+        // =========================
         // Review
+        // =========================
         modelBuilder.Entity<Review>(entity =>
         {
+            entity.ToTable("Reviews");
+
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.ReviewerName)
@@ -135,20 +180,43 @@ public class ApplicationDbContext : DbContext
             entity.Property(x => x.Comment)
                 .HasMaxLength(1000);
 
+            entity.Property(x => x.Rating)
+                .IsRequired();
+
+            entity.Property(x => x.CreatedAt)
+                .IsRequired();
+
+            entity.HasOne(x => x.Product)
+                .WithMany(x => x.Reviews)
+                .HasForeignKey(x => x.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             entity.ToTable(table =>
+            {
                 table.HasCheckConstraint(
                     "CK_Reviews_Rating",
-                    "[Rating] >= 1 AND [Rating] <= 5"));
+                    "[Rating] >= 1 AND [Rating] <= 5"
+                );
+            });
         });
 
-
-        // Newsletter
+        // =========================
+        // Newsletter Subscription
+        // =========================
         modelBuilder.Entity<NewsletterSubscription>(entity =>
         {
+            entity.ToTable("NewsletterSubscriptions");
+
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.Email)
                 .HasMaxLength(255)
+                .IsRequired();
+
+            entity.Property(x => x.IsActive)
+                .HasDefaultValue(true);
+
+            entity.Property(x => x.CreatedAt)
                 .IsRequired();
 
             entity.HasIndex(x => x.Email)

@@ -1,0 +1,28 @@
+@"
+# Build
+**/bin/
+**/obj/
+publish/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# VS Code
+.vscode/
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local secrets / production config
+appsettings.Production.json
+
+# Rider
+.idea/
+"@ | Set-Content .gitignore

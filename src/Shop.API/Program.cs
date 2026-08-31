@@ -12,11 +12,11 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-
-// Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
+{
     options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")));
+        builder.Configuration.GetConnectionString("DefaultConnection"));
+});
 
 
 // Repositories
@@ -33,7 +33,7 @@ builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<INewsletterService, NewsletterService>();
 
 
-// CORS - Allow all frontends to access the API
+// CORS - allow any frontend
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -49,32 +49,44 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 
-// Swagger available in Development + Production
+// Swagger in Development + Production
 app.UseSwagger();
 
-app.UseSwaggerUI();
+app.UseSwaggerUI(options =>
+{
+    options.SwaggerEndpoint(
+        "/swagger/v1/swagger.json",
+        "Shop API V1");
+
+    options.RoutePrefix = "swagger";
+});
 
 
-// CORS
+// CORS MUST be before controllers
 app.UseCors("AllowAll");
 
-app.UseHttpsRedirection();
+
+// DON'T redirect HTTP while we're testing
+// app.UseHttpsRedirection();
+
 
 app.MapControllers();
 
 
-// Create database schema + seed data automatically
-// EnsureCreated keeps first setup simple: no migration command is required.
-using (var scope = app.Services.CreateScope())
+app.MapGet("/", () =>
 {
-    var db = scope.ServiceProvider
-        .GetRequiredService<ApplicationDbContext>();
+    return Results.Redirect("/swagger");
+});
 
-    await db.Database.EnsureCreatedAsync();
-    await DbSeeder.SeedAsync(db);
-}
 
-// Opening the API root redirects directly to Swagger.
-app.MapGet("/", () => Results.Redirect("/swagger"));
+app.MapGet("/health", () =>
+{
+    return Results.Ok(new
+    {
+        status = "running",
+        service = "Shop API"
+    });
+});
+
 
 app.Run();
